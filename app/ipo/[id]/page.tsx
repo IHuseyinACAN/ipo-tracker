@@ -48,9 +48,30 @@ export default function IPODetailPage() {
     const totalLots = accounts.reduce((acc, account) => acc + getAllocation(account.id), 0)
     const totalInvestment = totalLots * ipo.price
 
-    // Profit Calculation (Mock: Assume 10% for now or ceiling series)
-    // In a real app we'd fetch current price.
-    // Let's just show potential profit for 10 ceilings (approx x2.5) for fun visually
+    // Ceiling Series Calculation (1-15 days, based on first account)
+    const singleAccountLots = accounts.length > 0 ? getAllocation(accounts[0].id) : 0
+    const singleAccountInvestment = singleAccountLots * ipo.price
+    const totalInvestmentCalc = totalLots * ipo.price // Rename to avoid conflict if needed, or just use totalInvestment
+
+    const ceilingSeries = []
+    let currentPrice = ipo.price
+    for (let i = 1; i <= 15; i++) {
+        currentPrice = currentPrice * 1.10
+        const value = currentPrice * singleAccountLots
+        const profit = value - singleAccountInvestment
+
+        const totalValue = currentPrice * totalLots
+        const totalProfit = totalValue - totalInvestmentCalc
+
+        ceilingSeries.push({
+            day: i,
+            price: currentPrice,
+            value: value,
+            profit: profit,
+            totalProfit: totalProfit,
+            percentage: ((currentPrice - ipo.price) / ipo.price) * 100
+        })
+    }
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -72,34 +93,34 @@ export default function IPODetailPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Hesap Dağılımı</CardTitle>
-                        <CardDescription>Her hesaba düşen lot sayısını giriniz.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {accounts.map(account => (
-                            <div key={account.id} className="flex items-center justify-between space-x-4">
-                                <span className="font-medium w-32 truncate">{account.name}</span>
-                                <div className="flex items-center space-x-2">
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        className="w-24 text-right"
-                                        value={getAllocation(account.id)}
-                                        onChange={(e) => handleAllocationChange(account.id, e.target.value)}
-                                    />
-                                    <span className="text-sm text-muted-foreground w-12">Lot</span>
-                                </div>
-                                <div className="text-right w-24 text-sm tabular-nums">
-                                    {(getAllocation(account.id) * ipo.price).toFixed(2)} ₺
-                                </div>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
                 <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Hesap Dağılımı</CardTitle>
+                            <CardDescription>Her hesaba düşen lot sayısını giriniz.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {accounts.map(account => (
+                                <div key={account.id} className="flex items-center justify-between space-x-4">
+                                    <span className="font-medium w-32 truncate">{account.name}</span>
+                                    <div className="flex items-center space-x-2">
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            className="w-24 text-right"
+                                            value={getAllocation(account.id)}
+                                            onChange={(e) => handleAllocationChange(account.id, e.target.value)}
+                                        />
+                                        <span className="text-sm text-muted-foreground w-12">Lot</span>
+                                    </div>
+                                    <div className="text-right w-24 text-sm tabular-nums">
+                                        {(getAllocation(account.id) * ipo.price).toFixed(2)} ₺
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Genel Özet</CardTitle>
@@ -115,22 +136,43 @@ export default function IPODetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
 
-                    <Card className="bg-emerald-950/20 border-emerald-900/50">
+                <div className="space-y-6">
+                    <Card className="bg-emerald-950/20 border-emerald-900/50 h-full">
                         <CardHeader>
-                            <CardTitle className="flex items-center text-emerald-500">
-                                <Calculator className="mr-2 h-5 w-5" />
-                                Tavan Serisi Tahmini
+                            <CardTitle className="flex items-center text-emerald-500 justify-between">
+                                <div className="flex items-center">
+                                    <Calculator className="mr-2 h-5 w-5" />
+                                    Tavan Serisi
+                                </div>
+                                <span className="text-foreground text-sm font-bold bg-background/20 px-2 py-1 rounded">
+                                    {singleAccountLots} Lot
+                                </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">5. Tavan (%61 Kar):</span>
-                                <span className="font-medium">{(totalInvestment * 0.6105).toFixed(2)} ₺ Kar</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">10. Tavan (%159 Kar):</span>
-                                <span className="font-medium">{(totalInvestment * 1.5937).toFixed(2)} ₺ Kar</span>
+                        <CardContent>
+                            <div className="relative overflow-x-auto text-sm">
+                                <table className="w-full text-left rtl:text-right">
+                                    <thead className="text-xs uppercase text-muted-foreground border-b border-border/50">
+                                        <tr>
+                                            <th scope="col" className="px-2 py-2">Gün</th>
+                                            <th scope="col" className="px-2 py-2">Artış</th>
+                                            <th scope="col" className="px-2 py-2 text-right">Tek Hesap</th>
+                                            <th scope="col" className="px-2 py-2 text-right">Toplam Kar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ceilingSeries.map((day) => (
+                                            <tr key={day.day} className="border-b border-border/50 last:border-0 hover:bg-muted/50">
+                                                <td className="px-2 py-2 font-medium">{day.day}. Tavan</td>
+                                                <td className="px-2 py-2 text-muted-foreground">%{day.percentage.toFixed(0)}</td>
+                                                <td className="px-2 py-2 text-right font-medium">+{day.profit.toFixed(2)} ₺</td>
+                                                <td className="px-2 py-2 text-right text-emerald-500 font-bold">+{day.totalProfit.toFixed(2)} ₺</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </CardContent>
                     </Card>
