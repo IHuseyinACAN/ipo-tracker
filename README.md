@@ -1,46 +1,46 @@
-# IPO Tracker
+# Halka Arz Takipçisi (IPO Tracker)
 
-IPO Tracker is a modern, responsive web application designed to track Initial Public Offerings (IPOs). Built with Next.js 15 and Tailwind CSS, it offers a seamless experience across desktop and mobile devices.
+Halka Arz Takipçisi, Halka Arzları (IPO) takip etmek için tasarlanmış modern ve duyarlı bir web uygulamasıdır. Next.js 15 ve Tailwind CSS ile geliştirilmiş olup, masaüstü ve mobil cihazlarda kusursuz bir deneyim sunar.
 
-## 🚀 Features
+## 🚀 Özellikler
 
-- **Real-time Tracking:** Keep up to date with the latest IPOs.
-- **Mobile First Design:** Optimized for smartphones and tablets.
-- **Data Synchronization:** Sync your tracked IPOs across devices.
-- **Interactive Charts:** Visualize data with Recharts.
-- **Modern UI:** Clean interface using Shadcn UI and Radix Primitives.
+- **Gerçek Zamanlı Takip:** En son halka arzları güncel olarak takip edin.
+- **Mobil Öncelikli Tasarım:** Akıllı telefonlar ve tabletler için optimize edilmiştir.
+- **Veri Senkronizasyonu:** Takip ettiğiniz halka arzları cihazlar arasında senkronize edin.
+- **Etkileşimli Grafikler:** Verileri Recharts ile görselleştirin.
+- **Modern Arayüz:** Shadcn UI ve Radix Primitives kullanılarak oluşturulmuş temiz bir arayüz.
 
-## 🛠️ Tech Stack
+## 🛠️ Teknoloji Yığını
 
-- **Framework:** [Next.js 15](https://nextjs.org/)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **UI Components:** [Radix UI](https://www.radix-ui.com/) & [Lucide React](https://lucide.dev/)
-- **State Management:** [Zustand](https://github.com/pmndrs/zustand)
-- **Charts:** [Recharts](https://recharts.org/)
+- **Çatı (Framework):** [Next.js 15](https://nextjs.org/)
+- **Stil:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Bileşenleri:** [Radix UI](https://www.radix-ui.com/) & [Lucide React](https://lucide.dev/)
+- **Durum Yönetimi:** [Zustand](https://github.com/pmndrs/zustand)
+- **Grafikler:** [Recharts](https://recharts.org/)
 
-## 📦 Getting Started
+## 📦 Kurulum
 
-1. **Clone the repository:**
+1. **Depoyu klonlayın:**
    ```bash
-   git clone https://github.com/yourusername/ipo-tracker.git
+   git clone https://github.com/kullaniciadi/ipo-tracker.git
    ```
 
-2. **Install dependencies:**
+2. **Bağımlılıkları yükleyin:**
    ```bash
    npm install
-   # or
+   # veya
    yarn install
-   # or
+   # veya
    pnpm install
    ```
 
-3. **Run the development server:**
+3. **Geliştirme sunucusunu başlatın:**
    ```bash
    npm run dev
    ```
 
-4. **Open [http://localhost:3000](http://localhost:3000)** in your browser.
+4. **Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.**
 
-## 🤝 Contributing
+## 🤝 Katkıda Bulunma
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Katkılarınızı bekliyoruz! Lütfen bir Pull Request göndermekten çekinmeyin.
