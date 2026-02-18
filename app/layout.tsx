@@ -22,10 +22,11 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={inter.className}>
+        <div className="mesh-background" />
         <ClientInitializer />
         <div className="relative flex min-h-screen flex-col">
           <Navbar />
-          <main className="flex-1 container mx-auto py-6">{children}</main>
+          <main className="flex-1 container mx-auto py-6 relative z-10">{children}</main>
         </div>
       </body>
     </html>
