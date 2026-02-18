@@ -159,15 +159,17 @@ export default function Home() {
         <AnimatePresence mode="wait">
           <TabsContent value="active" key="active" className="space-y-8 focus-visible:outline-none">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+              variants={container}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, y: 10 }}
               className="space-y-8"
             >
-              <PortfolioSummary />
+              <motion.div variants={item}>
+                <PortfolioSummary />
+              </motion.div>
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <motion.div variants={item} className="grid gap-6 md:grid-cols-2">
                 <Card className="glass border-none overflow-hidden" key={`dist-${activeTab}`}>
                   <CardHeader className="border-b border-border/30 bg-white/5">
                     <CardTitle className="text-lg font-semibold flex items-center">
@@ -190,88 +192,77 @@ export default function Home() {
                     <ProfitChart data={profitData} />
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
 
-              <div className="space-y-4">
+              <motion.div variants={item} className="space-y-4">
                 <h3 className="text-2xl font-bold tracking-tight flex items-center">
                   <TrendingUp className="mr-2 text-blue-400" />
                   İşlem Görenler
                 </h3>
-                <motion.div
-                  variants={container}
-                  initial="hidden"
-                  animate="show"
-                  className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-                >
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {ipos.filter((i: IPO) => i.status === 'trading' || i.status === 'open').map((ipo: IPO) => (
-                    <motion.div key={ipo.id} variants={item}>
+                    <motion.div key={ipo.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       <IPOCard ipo={ipo} />
                     </motion.div>
                   ))}
                   {ipos.filter((i: IPO) => i.status === 'trading' || i.status === 'open').length === 0 && (
                     <p className="text-muted-foreground p-8 glass rounded-xl text-center col-span-full">Aktif bir halka arz yok.</p>
                   )}
-                </motion.div>
-              </div>
+                </div>
+              </motion.div>
             </motion.div>
           </TabsContent>
 
           <TabsContent value="upcoming" key="upcoming" className="space-y-4 focus-visible:outline-none">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+              variants={container}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, y: 10 }}
               className="space-y-4"
             >
-              <h3 className="text-2xl font-bold tracking-tight mb-4 flex items-center">
-                <Calendar className="mr-2 text-emerald-400" />
-                Yaklaşan Halka Arzlar
-              </h3>
-              <motion.div
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-              >
+              <motion.div variants={item}>
+                <h3 className="text-2xl font-bold tracking-tight mb-4 flex items-center">
+                  <Calendar className="mr-2 text-emerald-400" />
+                  Yaklaşan Halka Arzlar
+                </h3>
+              </motion.div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {activeIPOs.filter((i: IPO) => i.status === 'upcoming').length === 0 && (
                   <p className="text-muted-foreground p-8 glass rounded-xl text-center col-span-full">Şuan aktif bir halka arz yok.</p>
                 )}
                 {activeIPOs.filter((i: IPO) => i.status === 'upcoming').map((ipo: IPO) => (
-                  <motion.div key={ipo.id} variants={item}>
+                  <motion.div key={ipo.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <IPOCard ipo={ipo} />
                   </motion.div>
                 ))}
-              </motion.div>
+              </div>
             </motion.div>
           </TabsContent>
 
           <TabsContent value="closed" key="closed" className="space-y-4 focus-visible:outline-none">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+              variants={container}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, y: 10 }}
               className="space-y-4"
             >
-              <h3 className="text-2xl font-bold tracking-tight mb-4 flex items-center text-muted-foreground">
-                Tamamlanan / Arşiv
-              </h3>
-              <motion.div
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-              >
+              <motion.div variants={item}>
+                <h3 className="text-2xl font-bold tracking-tight mb-4 flex items-center text-muted-foreground">
+                  Tamamlanan / Arşiv
+                </h3>
+              </motion.div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {ipos.filter((i: IPO) => i.status === 'closed').map((ipo: IPO) => (
-                  <motion.div key={ipo.id} variants={item}>
+                  <motion.div key={ipo.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <IPOCard ipo={ipo} />
                   </motion.div>
                 ))}
                 {ipos.filter((i: IPO) => i.status === 'closed').length === 0 && (
                   <p className="text-muted-foreground p-8 glass rounded-xl text-center col-span-full">Henüz tamamlanmış bir arz yok.</p>
                 )}
-              </motion.div>
+              </div>
             </motion.div>
           </TabsContent>
         </AnimatePresence>
