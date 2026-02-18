@@ -27,6 +27,9 @@ export default function Home() {
 
   // Chart Data Preparation
   const portfolioData = ipos.map(ipo => {
+    // Sadece 'open' veya 'trading' olanları portföy dağılımında göster
+    if (ipo.status === 'closed') return { name: ipo.code, value: 0 }
+
     const totalAllocated = allocations
       .filter(a => a.ipoId === ipo.id)
       .reduce((sum, a) => sum + a.allocatedLot, 0)
@@ -36,20 +39,6 @@ export default function Home() {
       value: totalAllocated * ipo.price
     }
   }).filter(item => item.value > 0)
-
-  const accountData = accounts.map(account => {
-    const totalValue = allocations
-      .filter(a => a.accountId === account.id)
-      .reduce((sum, a) => {
-        const ipo = ipos.find(i => i.id === a.ipoId)
-        return sum + (a.allocatedLot * (ipo?.price || 0))
-      }, 0)
-
-    return {
-      name: account.name,
-      total: totalValue
-    }
-  })
 
   // Profit Data Calculation
   const profitData = ipos.map(ipo => {
@@ -104,23 +93,23 @@ export default function Home() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{openIPOs.length}</div>
+            <div className="text-2xl font-bold">{activeIPOs.length}</div>
             <p className="text-xs text-muted-foreground">
-              Talep toplayan şirketler
+              Talep toplayan ve beklenenler
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Yaklaşanlar
+              İşlem Görenler
             </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeIPOs.length - openIPOs.length}</div>
+            <div className="text-2xl font-bold">{ipos.filter(i => i.status === 'trading').length}</div>
             <p className="text-xs text-muted-foreground">
-              Takvimi belli olanlar
+              Borsada aktif işlem görenler
             </p>
           </CardContent>
         </Card>
@@ -138,21 +127,13 @@ export default function Home() {
           <PortfolioSummary />
 
           {/* Charts Section */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Portföy Dağılımı</CardTitle>
               </CardHeader>
               <CardContent>
                 <PortfolioDistribution data={portfolioData} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Hesap Varlıkları</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AccountPerformance data={accountData} />
               </CardContent>
             </Card>
             <Card>
