@@ -101,20 +101,27 @@ export default function IPODetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {accounts.map(account => (
-                                <div key={account.id} className="flex items-center justify-between space-x-4">
-                                    <span className="font-medium w-32 truncate">{account.name}</span>
-                                    <div className="flex items-center space-x-2">
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            className="w-24 text-right"
-                                            value={getAllocation(account.id)}
-                                            onChange={(e) => handleAllocationChange(account.id, e.target.value)}
-                                        />
-                                        <span className="text-sm text-muted-foreground w-12">Lot</span>
+                                <div key={account.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                                            {account.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="font-medium truncate max-w-[150px]">{account.name}</span>
                                     </div>
-                                    <div className="text-right w-24 text-sm tabular-nums">
-                                        {(getAllocation(account.id) * ipo.price).toFixed(2)} ₺
+                                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                                        <div className="flex items-center space-x-2">
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                className="w-20 text-right bg-background/50"
+                                                value={getAllocation(account.id)}
+                                                onChange={(e) => handleAllocationChange(account.id, e.target.value)}
+                                            />
+                                            <span className="text-sm text-muted-foreground">Lot</span>
+                                        </div>
+                                        <div className="text-right min-w-[80px] font-bold text-blue-400 tabular-nums">
+                                            {(getAllocation(account.id) * ipo.price).toFixed(2)} ₺
+                                        </div>
                                     </div>
                                 </div>
                             ))}

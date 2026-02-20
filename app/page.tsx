@@ -81,11 +81,13 @@ export default function Home() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between space-y-2"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <h2 className="text-4xl font-extrabold tracking-tight neon-text bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-          Kontrol Paneli
-        </h2>
+        <Link href="/">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight neon-text bg-clİp-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 hover:opacity-80 transition-opacity cursor-pointer">
+            Kontrol Paneli
+          </h2>
+        </Link>
         <div className="flex items-center space-x-2">
           <Link href="/admin">
             <Button className="glass border-primary/30 hover:bg-primary/20 neon-border">Halka Arz Ekle</Button>
@@ -100,20 +102,22 @@ export default function Home() {
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
       >
         <motion.div variants={item}>
-          <Card className="glass neon-border border-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-                Toplam Hesap
-              </CardTitle>
-              <Users className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{accounts.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Aktif takip edilen hesap
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/accounts" className="block h-full group">
+            <Card className="glass neon-border border-none h-full transition-all group-hover:bg-white/10 group-hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground group-hover:text-blue-400 transition-colors">
+                  Toplam Hesap
+                </CardTitle>
+                <Users className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold group-hover:neon-text transition-all">{accounts.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Aktif takip edilen hesap (Tıklayın)
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </motion.div>
         <motion.div variants={item}>
           <Card className="glass neon-border border-none">
