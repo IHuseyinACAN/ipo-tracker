@@ -1,6 +1,6 @@
 "use client"
 
-import { Mail, Heart } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export function Footer() {
@@ -16,10 +16,8 @@ export function Footer() {
                     >
                         <span>© {new Date().getFullYear()}</span>
                         <span>•</span>
-                        <div className="flex items-center gap-1.5 group">
-                            <span>Hüseyin Acan tarafından</span>
-                            <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
-                            <span>yapıldı</span>
+                        <div className="flex items-center gap-1.5 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+                            <span>Hüseyin Acan tarafından hazırlandı</span>
                         </div>
                     </motion.div>
 

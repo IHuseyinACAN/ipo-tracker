@@ -84,7 +84,7 @@ export default function Home() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <Link href="/">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight neon-text bg-clİp-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 hover:opacity-80 transition-opacity cursor-pointer">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight neon-text bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 hover:opacity-80 transition-opacity cursor-pointer">
             Kontrol Paneli
           </h2>
         </Link>
