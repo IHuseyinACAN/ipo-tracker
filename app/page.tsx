@@ -35,12 +35,10 @@ export default function Home() {
   const { accounts, ipos, allocations, seedData } = useStore()
   const [activeTab, setActiveTab] = useState('active')
 
-  // Veri yoksa tohumla
+  // Veri yoksa tohumla veya eski verileri göç ettir
   useEffect(() => {
-    if (ipos.length === 0) {
-      seedData()
-    }
-  }, [ipos.length, seedData])
+    seedData()
+  }, [seedData])
 
   const activeIPOs = ipos.filter((ipo: IPO) => ipo.status === 'open' || ipo.status === 'upcoming' || ipo.status === 'trading')
 
