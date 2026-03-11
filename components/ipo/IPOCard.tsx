@@ -21,6 +21,9 @@ export function IPOCard({ ipo }: IPOCardProps) {
     const isOpen = ipo.status === 'open'
     const isClosed = ipo.status === 'closed'
 
+    const effectivePrice = isClosed && ipo.sellPrice ? ipo.sellPrice : ipo.price
+    const profitPercent = ipo.initialPrice ? ((effectivePrice - ipo.initialPrice) / ipo.initialPrice * 100) : 0
+
     const handleCardClick = () => {
         router.push(`/ipo/${ipo.id}`)
     }
@@ -35,23 +38,28 @@ export function IPOCard({ ipo }: IPOCardProps) {
                 className="overflow-hidden glass border-border/50 group relative cursor-pointer h-full neon-border"
                 onClick={handleCardClick}
             >
-                <div
-                    className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <IPOEditDialog ipo={ipo} />
-                </div>
                 <div className={`h-1.5 w-full transition-all duration-500 group-hover:h-3 ${isOpen ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : isTrading ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : isClosed ? 'bg-gray-500' : 'bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.5)]'}`} />
                 <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center justify-between gap-2">
                                 <h3 className="text-2xl font-bold tracking-tight neon-text">{ipo.code}</h3>
-                                <Badge variant={isOpen ? 'default' : 'secondary'} className={isOpen ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/25 animate-pulse' : ''}>
-                                    {isOpen ? 'Talep Topluyor' : ipo.status === 'upcoming' ? 'Yakında' : ipo.status === 'trading' ? 'İşlem Görüyor' : 'Tamamlandı'}
-                                </Badge>
+                                <div className="flex flex-col items-end gap-1.5">
+                                    <Badge variant={isOpen ? 'default' : 'secondary'} className={isOpen ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/25 animate-pulse' : ''}>
+                                        {isOpen ? 'Talep Topluyor' : ipo.status === 'upcoming' ? 'Yakında' : ipo.status === 'trading' ? 'İşlem Görüyor' : 'Tamamlandı'}
+                                    </Badge>
+                                    {(isTrading || isClosed) && ipo.initialPrice && (
+                                        <div className={`text-[10px] font-black px-2 py-0.5 rounded border ${
+                                            profitPercent >= 0 
+                                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+                                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+                                        }`}>
+                                            {profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(1)}%
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1" title={ipo.companyName}>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1 opacity-70" title={ipo.companyName}>
                                 {ipo.companyName}
                             </p>
                         </div>
@@ -63,16 +71,6 @@ export function IPOCard({ ipo }: IPOCardProps) {
                             <div className="flex items-center font-medium">
                                 <TrendingUp className="mr-2 h-4 w-4 text-blue-400" />
                                 <span className="text-lg">{ipo.price.toFixed(2)} ₺</span>
-                                {ipo.initialPrice && (
-                                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-md ${ipo.price > ipo.initialPrice
-                                        ? 'bg-emerald-500/15 text-emerald-500'
-                                        : ipo.price < ipo.initialPrice
-                                            ? 'bg-red-500/15 text-red-500'
-                                            : 'bg-muted text-muted-foreground'
-                                        }`}>
-                                        %{((ipo.price - ipo.initialPrice) / ipo.initialPrice * 100).toFixed(1)}
-                                    </span>
-                                )}
                             </div>
                         </div>
                         <div className="space-y-1">

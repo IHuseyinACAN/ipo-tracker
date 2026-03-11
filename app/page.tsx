@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
-import { Users, TrendingUp, Calendar } from 'lucide-react'
+import { Users, TrendingUp, Calendar, RefreshCw, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { PortfolioDistribution } from '@/components/charts/PortfolioDistribution'
 import { ProfitChart } from '@/components/charts/ProfitChart'
+import { MonthlyProfitChart } from '@/components/charts/MonthlyProfitChart'
 import { PortfolioSummary } from '@/components/dashboard/PortfolioSummary'
 import { IPOCard } from '@/components/ipo/IPOCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -41,11 +42,18 @@ export default function Home() {
     }
   }, [ipos.length, seedData])
 
-  const activeIPOs = ipos.filter((ipo: IPO) => ipo.status === 'open' || ipo.status === 'upcoming')
+  const activeIPOs = ipos.filter((ipo: IPO) => ipo.status === 'open' || ipo.status === 'upcoming' || ipo.status === 'trading')
 
   // Chart Data Preparation
   const portfolioData = ipos.map((ipo: IPO) => {
-    if (ipo.status === 'closed') return { name: ipo.code, value: 0 }
+    // Sadece aktif sekmedeki durumla eşleşenleri veya trading olanları göster (genel portföy için)
+    const isVisibleInTab = activeTab === 'active' 
+      ? (ipo.status === 'trading' || ipo.status === 'open')
+      : activeTab === 'upcoming' 
+        ? ipo.status === 'upcoming' 
+        : ipo.status === 'closed'
+
+    if (!isVisibleInTab) return { name: ipo.code, value: 0 }
 
     const totalAllocated = allocations
       .filter((a: Allocation) => a.ipoId === ipo.id)
@@ -63,6 +71,14 @@ export default function Home() {
       .filter((a: Allocation) => a.ipoId === ipo.id)
       .reduce((sum: number, a: Allocation) => sum + a.allocatedLot, 0)
 
+    const isVisibleInTab = activeTab === 'active' 
+      ? (ipo.status === 'trading' || ipo.status === 'open')
+      : activeTab === 'upcoming' 
+        ? ipo.status === 'upcoming' 
+        : ipo.status === 'closed'
+
+    if (!isVisibleInTab) return { name: ipo.code, profit: 0, percent: 0 }
+
     const cost = totalAllocated * (ipo.initialPrice || ipo.price)
     const currentVal = totalAllocated * (ipo.sellPrice || ipo.price)
     const profit = currentVal - cost
@@ -74,6 +90,36 @@ export default function Home() {
       percent: percent
     }
   }).filter((item: any) => item.profit !== 0)
+    .sort((a, b) => b.percent - a.percent) // Yüksekten düşüğe sırala
+  // Monthly Profit Data Calculation (For Performance Tab)
+  const monthlyProfitData = (() => {
+    const monthlyMap: Record<string, number> = {}
+    
+    ipos.filter(i => i.status === 'closed' || i.status === 'trading').forEach(ipo => {
+      const totalAllocated = allocations
+        .filter((a: Allocation) => a.ipoId === ipo.id)
+        .reduce((sum: number, a: Allocation) => sum + a.allocatedLot, 0)
+
+      if (totalAllocated === 0) return
+
+      const cost = totalAllocated * (ipo.initialPrice || ipo.price)
+      const currentVal = totalAllocated * (ipo.sellPrice || ipo.price)
+      const profit = currentVal - cost
+      
+      // Use endDate or current month if trading
+      const dateStr = ipo.endDate || new Date().toISOString().split('T')[0]
+      const monthKey = dateStr.substring(0, 7) // YYYY-MM
+      
+      monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + profit
+    })
+
+    return Object.entries(monthlyMap)
+      .map(([month, profit]) => ({
+        month,
+        profit: Math.round(profit)
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month))
+  })()
 
 
   return (
@@ -88,7 +134,19 @@ export default function Home() {
             Kontrol Paneli
           </h2>
         </Link>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          <Link href="/quick-update">
+            <Button variant="ghost" className="glass border-yellow-500/20 hover:bg-yellow-500/10 text-yellow-500/80 hover:text-yellow-400">
+              <Zap className="mr-2 h-4 w-4 fill-yellow-500/20" />
+              Hızlı Güncelle
+            </Button>
+          </Link>
+          <Link href="/settings">
+            <Button variant="ghost" className="glass border-white/5 hover:bg-white/10 text-muted-foreground hover:text-white">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Ayarlar & Yedek
+            </Button>
+          </Link>
           <Link href="/admin">
             <Button className="glass border-primary/30 hover:bg-primary/20 neon-border">Halka Arz Ekle</Button>
           </Link>
@@ -158,6 +216,7 @@ export default function Home() {
           <TabsTrigger value="active" className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400">Portföy / Aktif</TabsTrigger>
           <TabsTrigger value="upcoming" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Gelecek Arzlar</TabsTrigger>
           <TabsTrigger value="closed" className="data-[state=active]:bg-slate-600/20">Tamamlananlar</TabsTrigger>
+          <TabsTrigger value="performance" className="data-[state=active]:bg-purple-600/20 data-[state=active]:text-purple-400">Performans Analizi</TabsTrigger>
         </TabsList>
 
         <AnimatePresence mode="wait">
@@ -266,6 +325,52 @@ export default function Home() {
                 {ipos.filter((i: IPO) => i.status === 'closed').length === 0 && (
                   <p className="text-muted-foreground p-8 glass rounded-xl text-center col-span-full">Henüz tamamlanmış bir arz yok.</p>
                 )}
+              </div>
+            </motion.div>
+          </TabsContent>
+          <TabsContent value="performance" key="performance" className="space-y-4 focus-visible:outline-none">
+            <motion.div
+              variants={container}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, y: 10 }}
+              className="space-y-8"
+            >
+              <Card className="glass border-none neon-border overflow-hidden bg-purple-950/5">
+                <CardHeader className="bg-white/5 border-b border-white/10">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-purple-400" />
+                    Aylık Getiri Gelişimi
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="h-[350px] w-full">
+                    <MonthlyProfitChart data={monthlyProfitData} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card className="glass border-none bg-blue-950/10">
+                  <CardContent className="p-6">
+                    <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">En Kârlı Ay</h4>
+                    <div className="text-3xl font-black text-emerald-400">
+                      {monthlyProfitData.length > 0 
+                        ? [...monthlyProfitData].sort((a,b) => b.profit - a.profit)[0].month 
+                        : 'Veri Yok'}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="glass border-none bg-purple-950/10">
+                  <CardContent className="p-6">
+                    <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Ortalama Aylık Kâr</h4>
+                    <div className="text-3xl font-black text-purple-400">
+                      {monthlyProfitData.length > 0 
+                        ? Math.round(monthlyProfitData.reduce((acc,curr) => acc + curr.profit, 0) / monthlyProfitData.length).toLocaleString('tr-TR')
+                        : '0'} ₺
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </motion.div>
           </TabsContent>

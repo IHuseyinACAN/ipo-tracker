@@ -1,7 +1,7 @@
 export type Account = {
     id: string
     name: string
-    // Future: totalBalance, etc.
+    bankName?: string
 }
 
 export type IPOStatus = 'upcoming' | 'open' | 'trading' | 'closed'
@@ -24,6 +24,7 @@ export type Allocation = {
     accountId: string
     requestedAmount?: number // Talep edilen tutar (opsiyonel)
     allocatedLot: number // Kesinleşen lot
+    bankName?: string // Bu arza özel seçilen banka
     soldPrice?: number // Satış fiyatı (eğer satıldıysa)
     isSold: boolean
 }

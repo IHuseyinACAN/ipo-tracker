@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Halka Arz Takip Uygulaması",
 };
 
+import { Toaster } from 'sonner'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,6 +32,7 @@ export default function RootLayout({
           <main className="flex-1 container mx-auto py-6 relative z-10">{children}</main>
           <Footer />
         </div>
+        <Toaster richColors position="top-right" closeButton />
       </body>
     </html>
   );

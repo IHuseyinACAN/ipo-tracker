@@ -7,7 +7,8 @@ interface AppState {
     accounts: Account[]
     ipos: IPO[]
     allocations: Allocation[]
-    addAccount: (name: string) => void
+    addAccount: (name: string, bankName?: string) => void
+    updateAccount: (id: string, data: Partial<Account>) => void
     removeAccount: (id: string) => void
     addIPO: (ipo: Omit<IPO, 'id'>) => void
     removeIPO: (id: string) => void
@@ -25,16 +26,23 @@ export const useStore = create<AppState>()(
             accounts: [],
             ipos: [],
             allocations: [],
-            addAccount: (name) =>
+            addAccount: (name, bankName) =>
                 set((state) => ({
                     accounts: [
                         ...state.accounts,
-                        { id: generateUUID(), name },
+                        { id: generateUUID(), name, bankName },
                     ],
+                })),
+            updateAccount: (id, data) =>
+                set((state) => ({
+                    accounts: state.accounts.map((a) =>
+                        a.id === id ? { ...a, ...data } : a
+                    ),
                 })),
             removeAccount: (id) =>
                 set((state) => ({
                     accounts: state.accounts.filter((a) => a.id !== id),
+                    // Opsiyonel: İlişkili alokasyonları da temizlemek gerekebilir ama kullanıcı istemedikçe dokunmuyoruz
                 })),
             addIPO: (ipo) =>
                 set((state) => ({
@@ -43,7 +51,6 @@ export const useStore = create<AppState>()(
             removeIPO: (id) =>
                 set((state) => ({
                     ipos: state.ipos.filter((ipo) => ipo.id !== id),
-                    // Opsiyonel: İlişkili alokasyonları da temizle
                     allocations: state.allocations.filter((a) => a.ipoId !== id)
                 })),
             updateIPO: (id, data) =>
@@ -71,15 +78,13 @@ export const useStore = create<AppState>()(
                     ...data
                 })),
             seedData: () => {
-                const { accounts, ipos } = get()
+                const { accounts, ipos, allocations } = get()
 
-                // Check if we need to migrate from old data
                 const hasOldData = ipos.some(i => i.code === 'ORNEK')
                 const hasNewData = ipos.some(i => i.code === 'EMPAE')
 
                 if (hasNewData && !hasOldData) return
 
-                // New Real Data
                 const newIPOs: IPO[] = [
                     {
                         id: generateUUID(),
@@ -95,8 +100,9 @@ export const useStore = create<AppState>()(
                         id: generateUUID(),
                         code: 'ATATR',
                         companyName: 'Ata Turizm İşletmecilik A.Ş.',
-                        price: 18.50, // Tahmini/Örnek
+                        price: 18.50,
                         initialPrice: 18.50,
+                        sellPrice: 24.10, // Satış fiyatı eklendi
                         status: 'closed',
                         startDate: '2026-02-11',
                         endDate: '2026-02-13',
@@ -105,7 +111,7 @@ export const useStore = create<AppState>()(
                         id: generateUUID(),
                         code: 'BESTE',
                         companyName: 'Best Brands Grup Enerji Yatırım A.Ş.',
-                        price: 14.70,
+                        price: 21.40, // Fiyat arttı
                         initialPrice: 14.70,
                         status: 'trading',
                         startDate: '2026-02-05',
@@ -115,7 +121,7 @@ export const useStore = create<AppState>()(
                         id: generateUUID(),
                         code: 'NETCD',
                         companyName: 'Netcad Yazılım A.Ş.',
-                        price: 46.00,
+                        price: 52.50, // Fiyat arttı
                         initialPrice: 46.00,
                         status: 'trading',
                         startDate: '2026-01-28',
@@ -125,7 +131,7 @@ export const useStore = create<AppState>()(
                         id: generateUUID(),
                         code: 'AKHAN',
                         companyName: 'Akhan Un Fabrikası A.Ş.',
-                        price: 21.50,
+                        price: 19.80, // Fiyat düştü
                         initialPrice: 21.50,
                         status: 'trading',
                         startDate: '2026-01-28',
@@ -133,15 +139,20 @@ export const useStore = create<AppState>()(
                     }
                 ]
 
-                // Keep accounts but reset IPOs if old data exists or no data exists
                 if (hasOldData || ipos.length === 0) {
-                    // Preserve created accounts if any, otherwise default
                     const currentAccounts = accounts.length > 0 ? accounts : [
-                        { id: generateUUID(), name: 'Kendim' },
-                        { id: generateUUID(), name: 'Eşim' },
+                        { id: generateUUID(), name: 'Kendim', bankName: 'Ziraat' },
+                        { id: generateUUID(), name: 'Eşim', bankName: 'Garanti' },
                     ]
 
                     set({ accounts: currentAccounts, ipos: newIPOs })
+                } else {
+                    // Veri göçü: Eğer mevcut IPO'larda initialPrice eksikse ata
+                    const updatedIPOs = ipos.map(ipo => ({
+                        ...ipo,
+                        initialPrice: ipo.initialPrice ?? ipo.price
+                    }))
+                    set({ ipos: updatedIPOs })
                 }
             }
         }),

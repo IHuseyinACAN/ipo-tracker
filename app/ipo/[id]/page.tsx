@@ -6,9 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Save, Calculator } from 'lucide-react'
+import { ArrowLeft, Calculator, TrendingUp, ShieldCheck, Wallet, Share2 } from 'lucide-react'
 import Link from 'next/link'
+import { IPOEditDialog } from '@/components/ipo/IPOEditDialog'
+import { motion } from 'framer-motion'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
+
+const BANKS = [
+    "Yapıkredi", "Garanti", "Ziraat", "İş bankası", 
+    "Kuveyt türk", "Qnb finansbank", "Vakıfbank", "Midas"
+]
 
 export default function IPODetailPage() {
     const params = useParams()
@@ -17,165 +25,284 @@ export default function IPODetailPage() {
 
     const ipo = ipos.find((i) => i.id === id)
 
-    // Local state for inputs to avoid potential stuttering, though zustand is fast enough usually
-    // We will read from store directly for simplicity in this MVP
-
     if (!ipo) {
-        return <div className="p-8">Halka arz bulunamadı.</div>
+        return <div className="p-8 text-center glass rounded-xl mx-auto max-w-md mt-20 border-none neon-border">Halka arz bulunamadı.</div>
+    }
+
+    const getAllocation = (accountId: string) => {
+        return allocations.find(a => a.ipoId === id && a.accountId === accountId)
     }
 
     const handleAllocationChange = (accountId: string, val: string) => {
         const num = parseInt(val)
         if (isNaN(num)) return
 
-        const existing = allocations.find(a => a.ipoId === id && a.accountId === accountId)
+        const existing = getAllocation(accountId)
         if (existing) {
             updateAllocation(existing.id, { allocatedLot: num })
         } else {
+            // Varsayılan bankayı bul
+            const account = accounts.find(a => a.id === accountId)
             addAllocation({
                 ipoId: id,
                 accountId: accountId,
                 allocatedLot: num,
+                bankName: account?.bankName,
                 isSold: false
             })
         }
     }
 
-    const getAllocation = (accountId: string) => {
-        return allocations.find(a => a.ipoId === id && a.accountId === accountId)?.allocatedLot || 0
+    const handleBankChange = (accountId: string, bankName: string) => {
+        const existing = getAllocation(accountId)
+        if (existing) {
+            updateAllocation(existing.id, { bankName })
+        } else {
+            addAllocation({
+                ipoId: id,
+                accountId: accountId,
+                allocatedLot: 0,
+                bankName,
+                isSold: false
+            })
+        }
     }
 
-    const totalLots = accounts.reduce((acc, account) => acc + getAllocation(account.id), 0)
+    const handleShare = async () => {
+        const currentPrice = ipo.sellPrice || ipo.price
+        const profit = (currentPrice - ipo.initialPrice) * totalLots
+        const profitPercent = ((currentPrice - ipo.initialPrice) / ipo.initialPrice) * 100
+        
+        const shareText = `🚀 ${ipo.code} Halka Arz Özetim\n\n` +
+            `💰 Toplam Lot: ${totalLots}\n` +
+            `📈 Getiri: %${profitPercent.toFixed(1)}\n` +
+            `💵 Net Kâr: ${profit.toLocaleString('tr-TR')} ₺\n\n` +
+            `IPO Tracker ile takip ediyorum! 📊`
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${ipo.code} Kazanç Özeti`,
+                    text: shareText
+                })
+            } catch (err) {
+                console.error(err)
+            }
+        } else {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(shareText)
+            toast.success('Paylaşım metni panoya kopyalandı!')
+        }
+    }
+
+    const totalLots = accounts.reduce((acc, account) => acc + (getAllocation(account.id)?.allocatedLot || 0), 0)
     const totalInvestment = totalLots * ipo.price
 
-    // Ceiling Series Calculation (1-15 days, based on first account)
-    const singleAccountLots = accounts.length > 0 ? getAllocation(accounts[0].id) : 0
-    const singleAccountInvestment = singleAccountLots * ipo.price
-    const totalInvestmentCalc = totalLots * ipo.price // Rename to avoid conflict if needed, or just use totalInvestment
+    const displayLots = totalLots > 0 ? (accounts.length > 0 ? (getAllocation(accounts[0].id)?.allocatedLot || 0) : 0) : 0
 
     const ceilingSeries = []
     let currentPrice = ipo.price
     for (let i = 1; i <= 15; i++) {
         currentPrice = currentPrice * 1.10
-        const value = currentPrice * singleAccountLots
-        const profit = value - singleAccountInvestment
-
+        const value = currentPrice * displayLots
+        const profit = value - (displayLots * ipo.initialPrice)
         const totalValue = currentPrice * totalLots
-        const totalProfit = totalValue - totalInvestmentCalc
+        const totalProfit = totalValue - (totalLots * ipo.initialPrice)
 
         ceilingSeries.push({
             day: i,
             price: currentPrice,
-            value: value,
             profit: profit,
             totalProfit: totalProfit,
-            percentage: ((currentPrice - ipo.price) / ipo.price) * 100
+            percentage: ((currentPrice - ipo.initialPrice) / ipo.initialPrice) * 100
         })
     }
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="flex items-center space-x-4">
-                <Link href="/">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
-                <div>
-                    <div className="flex items-center space-x-2">
-                        <h1 className="text-2xl font-bold">{ipo.code} - {ipo.companyName}</h1>
-                        <Badge variant={ipo.status === 'open' ? 'default' : 'secondary'}>
-                            {ipo.status === 'open' ? 'Talep Topluyor' : ipo.status}
-                        </Badge>
+        <div className="space-y-8 max-w-5xl mx-auto pb-10">
+            {/* Header Area */}
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-6"
+            >
+                <div className="flex items-center gap-4">
+                    <Link href="/">
+                        <Button variant="ghost" size="icon" className="glass rounded-full h-12 w-12 border-white/10 hover:bg-white/10">
+                            <ArrowLeft className="h-6 w-6" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl md:text-4xl font-black neon-text">{ipo.code}</h1>
+                            <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/5 px-3 py-1 uppercase tracking-tighter">
+                                {ipo.status}
+                            </Badge>
+                        </div>
+                        <p className="text-muted-foreground font-medium md:text-lg opacity-80 mt-1">{ipo.companyName}</p>
                     </div>
-                    <p className="text-muted-foreground">Fiyat: {ipo.price.toFixed(2)} ₺ / Lot</p>
                 </div>
-            </div>
+                
+                <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Fiyat / Lot</p>
+                        <p className="text-2xl font-bold neon-text">{ipo.price.toFixed(2)} ₺</p>
+                    </div>
+                    <div className="glass p-1 rounded-xl border-white/10 flex items-center gap-1">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={handleShare}
+                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 h-10 w-10 rounded-lg"
+                        >
+                            <Share2 className="h-5 w-5" />
+                        </Button>
+                        <IPOEditDialog ipo={ipo} />
+                    </div>
+                </div>
+            </motion.div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Hesap Dağılımı</CardTitle>
-                            <CardDescription>Her hesaba düşen lot sayısını giriniz.</CardDescription>
+            <div className="grid gap-8 lg:grid-cols-12">
+                {/* Left Column: Allocations */}
+                <div className="lg:col-span-12 xl:col-span-7 space-y-8">
+                    <Card className="glass border-none neon-border overflow-hidden">
+                        <CardHeader className="bg-white/5 border-b border-white/10 flex flex-row items-center justify-between py-4">
+                            <div>
+                                <CardTitle className="text-xl flex items-center gap-2">
+                                    <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                                    Hesap & Banka Dağılımı
+                                </CardTitle>
+                                <CardDescription>Bu arza katılan hesapları ve bankaları yönetin.</CardDescription>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-xs text-muted-foreground uppercase block font-bold">Toplam</span>
+                                <span className="text-xl font-black text-emerald-400">{totalLots} Lot</span>
+                            </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {accounts.map(account => (
-                                <div key={account.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                                            {account.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <span className="font-medium truncate max-w-[150px]">{account.name}</span>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-white/5">
+                                {accounts.map((account, idx) => {
+                                    const allocation = getAllocation(account.id)
+                                    const currentBank = allocation?.bankName || account.bankName || ""
+
+                                    return (
+                                        <motion.div 
+                                            key={account.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: idx * 0.03 }}
+                                            className="flex flex-col md:flex-row md:items-center justify-between p-4 hover:bg-white/5 transition-all group gap-4"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="h-12 w-12 rounded-xl glass border-white/10 flex items-center justify-center text-blue-400 font-bold shrink-0 transition-transform group-hover:scale-110">
+                                                    {account.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-bold truncate group-hover:neon-text transition-all text-lg">{account.name}</p>
+                                                    <div className="mt-1">
+                                                        <Select 
+                                                            value={currentBank} 
+                                                            onValueChange={(val) => handleBankChange(account.id, val)}
+                                                        >
+                                                            <SelectTrigger className="h-7 bg-white/5 border-white/5 w-[160px] text-[11px] uppercase tracking-wider font-bold">
+                                                                <SelectValue placeholder="Banka Seç" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {BANKS.map(bank => (
+                                                                    <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-4 shrink-0 justify-between md:justify-end">
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        value={allocation?.allocatedLot || 0}
+                                                        onChange={(e) => handleAllocationChange(account.id, e.target.value)}
+                                                        className="w-24 bg-white/5 border-white/10 focus:border-emerald-500/50 text-right h-10 font-bold tabular-nums text-lg"
+                                                    />
+                                                    <span className="text-xs font-black text-muted-foreground">LOT</span>
+                                                </div>
+                                                <div className="w-28 text-right">
+                                                    <p className="text-base font-black text-blue-400 tabular-nums">
+                                                        {((allocation?.allocatedLot || 0) * ipo.price).toLocaleString('tr-TR')} ₺
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )
+                                })}
+                                {accounts.length === 0 && (
+                                    <div className="p-10 text-center text-muted-foreground text-sm">
+                                        Henüz hesap eklenmemiş. "Hesaplar" sayfasından ekleme yapabilirsiniz.
                                     </div>
-                                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                                        <div className="flex items-center space-x-2">
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                className="w-20 text-right bg-background/50"
-                                                value={getAllocation(account.id)}
-                                                onChange={(e) => handleAllocationChange(account.id, e.target.value)}
-                                            />
-                                            <span className="text-sm text-muted-foreground">Lot</span>
-                                        </div>
-                                        <div className="text-right min-w-[80px] font-bold text-blue-400 tabular-nums">
-                                            {(getAllocation(account.id) * ipo.price).toFixed(2)} ₺
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Genel Özet</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Toplam Lot:</span>
-                                <span className="font-bold text-xl">{totalLots}</span>
+                    <Card className="glass border-none bg-gradient-to-br from-blue-500/10 to-emerald-500/10 neon-border p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-sm text-muted-foreground uppercase tracking-[0.2em] font-black">Toplam Yatırım Tutarı</p>
+                                <h3 className="text-4xl font-black text-white neon-text">
+                                    {totalInvestment.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                </h3>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Toplam Yatırım:</span>
-                                <span className="font-bold text-xl">{totalInvestment.toFixed(2)} ₺</span>
-                            </div>
-                        </CardContent>
+                            <Wallet className="h-12 w-12 text-blue-400 opacity-20" />
+                        </div>
                     </Card>
                 </div>
 
-                <div className="space-y-6">
-                    <Card className="bg-emerald-950/20 border-emerald-900/50 h-full">
-                        <CardHeader>
-                            <CardTitle className="flex items-center text-emerald-500 justify-between">
-                                <div className="flex items-center">
-                                    <Calculator className="mr-2 h-5 w-5" />
-                                    Tavan Serisi
+                {/* Right Column: Ceiling Calc */}
+                <div className="lg:col-span-12 xl:col-span-5 space-y-8">
+                    <Card className="glass border-none neon-border overflow-hidden h-full flex flex-col bg-emerald-950/10">
+                        <CardHeader className="bg-white/5 border-b border-white/10 py-5">
+                            <CardTitle className="text-xl flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5 text-emerald-400" />
+                                    Tavan Serisi Takip
                                 </div>
-                                <span className="text-foreground text-sm font-bold bg-background/20 px-2 py-1 rounded">
-                                    {singleAccountLots} Lot
-                                </span>
+                                {displayLots > 0 && (
+                                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                        {displayLots} Lot / Hesap
+                                    </Badge>
+                                )}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="relative overflow-x-auto text-sm">
-                                <table className="w-full text-left rtl:text-right">
-                                    <thead className="text-xs uppercase text-muted-foreground border-b border-border/50">
+                        <CardContent className="p-0 flex-1 overflow-hidden">
+                            <div className="w-full">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="text-[10px] uppercase text-muted-foreground border-b border-white/5 bg-white/5">
                                         <tr>
-                                            <th scope="col" className="px-2 py-2">Gün</th>
-                                            <th scope="col" className="px-2 py-2">Artış</th>
-                                            <th scope="col" className="px-2 py-2 text-right">Tek Hesap</th>
-                                            <th scope="col" className="px-2 py-2 text-right">Toplam Kar</th>
+                                            <th className="px-4 py-3 font-black">Gün</th>
+                                            <th className="px-4 py-3 font-black">Artış</th>
+                                            <th className="px-4 py-3 text-right font-black">1 Hesap Kâr</th>
+                                            <th className="px-4 py-3 text-right font-black">Toplam Kâr</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-white/5 tabular-nums">
                                         {ceilingSeries.map((day) => (
-                                            <tr key={day.day} className="border-b border-border/50 last:border-0 hover:bg-muted/50">
-                                                <td className="px-2 py-2 font-medium">{day.day}. Tavan</td>
-                                                <td className="px-2 py-2 text-muted-foreground">%{day.percentage.toFixed(0)}</td>
-                                                <td className="px-2 py-2 text-right font-medium">+{day.profit.toFixed(2)} ₺</td>
-                                                <td className="px-2 py-2 text-right text-emerald-500 font-bold">+{day.totalProfit.toFixed(2)} ₺</td>
+                                            <tr key={day.day} className="hover:bg-white/5 group transition-colors">
+                                                <td className="px-4 py-3 font-medium opacity-60">
+                                                    {day.day}. Gün
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="text-xs font-bold bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                                                        %{day.percentage.toFixed(0)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-medium text-white/80">
+                                                    +{day.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-black text-emerald-400 neon-text">
+                                                    +{day.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
