@@ -101,7 +101,7 @@ export default function IPODetailPage() {
     const displayLots = totalLots > 0 ? (accounts.length > 0 ? (getAllocation(accounts[0].id)?.allocatedLot || 0) : 0) : 0
 
     const ceilingSeries = []
-    let currentPrice = ipo.price
+    let currentPrice = ipo.initialPrice
     for (let i = 1; i <= 15; i++) {
         currentPrice = currentPrice * 1.10
         const value = currentPrice * displayLots
