@@ -20,10 +20,10 @@ export function IPOCard({ ipo }: IPOCardProps) {
     const isTrading = ipo.status === 'trading'
     const isOpen = ipo.status === 'open'
     const isClosed = ipo.status === 'closed'
-
-    const effectivePrice = isClosed && ipo.sellPrice ? ipo.sellPrice : ipo.price
-    const profitPercent = ipo.initialPrice ? ((effectivePrice - ipo.initialPrice) / ipo.initialPrice * 100) : 0
-
+    const effectivePrice = isTrading ? ipo.price : (isClosed && ipo.sellPrice ? ipo.sellPrice : ipo.price)
+    // The previous math ((effectivePrice - initialPrice) / initialPrice) * 100 is correct for generic return.
+    // Let's ensure initialPrice is valid to prevent Infinity
+    const profitPercent = ipo.initialPrice > 0 ? ((effectivePrice - ipo.initialPrice) / ipo.initialPrice * 100) : 0
     const handleCardClick = () => {
         router.push(`/ipo/${ipo.id}`)
     }

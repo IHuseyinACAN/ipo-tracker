@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store/useStore'
-import { Users, TrendingUp, Calendar, RefreshCw, Zap } from 'lucide-react'
+import { Users, TrendingUp, Calendar, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { PortfolioDistribution } from '@/components/charts/PortfolioDistribution'
 import { ProfitChart } from '@/components/charts/ProfitChart'
 import { MonthlyProfitChart } from '@/components/charts/MonthlyProfitChart'
+import { FomoChart } from '@/components/charts/FomoChart'
 import { PortfolioSummary } from '@/components/dashboard/PortfolioSummary'
 import { IPOCard } from '@/components/ipo/IPOCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -63,19 +64,28 @@ export default function Home() {
     }
   }).filter((item: any) => item.value > 0)
 
-  // Profit Data Calculation
-  const profitData = ipos.map((ipo: IPO) => {
+  // Chart Data Preparation (All Portfolio)
+  const allPortfolioData = ipos.map((ipo: IPO) => {
+    // Tüm iptal olmayan hisseler için değer
     const totalAllocated = allocations
       .filter((a: Allocation) => a.ipoId === ipo.id)
       .reduce((sum: number, a: Allocation) => sum + a.allocatedLot, 0)
 
-    const isVisibleInTab = activeTab === 'active' 
-      ? (ipo.status === 'trading' || ipo.status === 'open')
-      : activeTab === 'upcoming' 
-        ? ipo.status === 'upcoming' 
-        : ipo.status === 'closed'
+    if (totalAllocated === 0) return { name: ipo.code, value: 0 }
 
-    if (!isVisibleInTab) return { name: ipo.code, profit: 0, percent: 0 }
+    return {
+      name: ipo.code,
+      value: totalAllocated * ipo.price
+    }
+  }).filter((item: any) => item.value > 0).sort((a,b) => b.value - a.value)
+
+  // Profit Data Calculation (For Performance Tab)
+  const allProfitData = ipos.map((ipo: IPO) => {
+    const totalAllocated = allocations
+      .filter((a: Allocation) => a.ipoId === ipo.id)
+      .reduce((sum: number, a: Allocation) => sum + a.allocatedLot, 0)
+
+    if (totalAllocated === 0) return { name: ipo.code, profit: 0, percent: 0 }
 
     const cost = totalAllocated * (ipo.initialPrice || ipo.price)
     const currentVal = totalAllocated * (ipo.sellPrice || ipo.price)
@@ -88,7 +98,9 @@ export default function Home() {
       percent: percent
     }
   }).filter((item: any) => item.profit !== 0)
-    .sort((a, b) => b.percent - a.percent) // Yüksekten düşüğe sırala
+
+  const profitSortedData = [...allProfitData].sort((a, b) => b.profit - a.profit)
+  const percentSortedData = [...allProfitData].sort((a, b) => b.percent - a.percent)
   // Monthly Profit Data Calculation (For Performance Tab)
   const monthlyProfitData = (() => {
     const monthlyMap: Record<string, number> = {}
@@ -119,6 +131,36 @@ export default function Home() {
       .sort((a, b) => a.month.localeCompare(b.month))
   })()
 
+  // FOMO Data Calculation (For Performance Tab)
+  const fomoData = ipos.filter(i => i.status === 'closed').map(ipo => {
+    const soldAllocations = allocations.filter((a: Allocation) => a.ipoId === ipo.id && a.isSold)
+    if (soldAllocations.length === 0) return null
+
+    let totalRealizedProfit = 0
+    let totalFomoProfit = 0
+
+    const initialPrice = ipo.initialPrice || ipo.price
+    const currentPrice = ipo.price
+
+    soldAllocations.forEach(a => {
+      const soldPrice = a.soldPrice || ipo.sellPrice || ipo.price
+      const cost = a.allocatedLot * initialPrice
+      
+      const realizedProfit = (a.allocatedLot * soldPrice) - cost
+      const fomoProfit = (a.allocatedLot * currentPrice) - cost
+
+      totalRealizedProfit += realizedProfit
+      totalFomoProfit += fomoProfit
+    })
+
+    if (totalRealizedProfit === 0 && totalFomoProfit === 0) return null
+
+    return {
+      name: ipo.code,
+      realizedProfit: totalRealizedProfit,
+      fomoProfit: totalFomoProfit
+    }
+  }).filter(Boolean) as { name: string, realizedProfit: number, fomoProfit: number }[]
 
   return (
     <div className="space-y-8">
@@ -133,12 +175,6 @@ export default function Home() {
           </h2>
         </Link>
         <div className="flex items-center space-x-3">
-          <Link href="/quick-update">
-            <Button variant="ghost" className="glass border-yellow-500/20 hover:bg-yellow-500/10 text-yellow-500/80 hover:text-yellow-400">
-              <Zap className="mr-2 h-4 w-4 fill-yellow-500/20" />
-              Hızlı Güncelle
-            </Button>
-          </Link>
           <Link href="/settings">
             <Button variant="ghost" className="glass border-white/5 hover:bg-white/10 text-muted-foreground hover:text-white">
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -233,24 +269,24 @@ export default function Home() {
               <motion.div variants={item} className="grid gap-6 md:grid-cols-2">
                 <Card className="glass border-none overflow-hidden" key={`dist-${activeTab}`}>
                   <CardHeader className="border-b border-border/30 bg-white/5">
-                    <CardTitle className="text-lg font-semibold flex items-center">
+                    <CardTitle className="text-lg font-semibold flex items-center text-blue-400">
                       <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full" />
-                      Portföy Dağılımı
+                      Aktif Portföy Dağılımı
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <PortfolioDistribution data={portfolioData} />
                   </CardContent>
                 </Card>
-                <Card className="glass border-none overflow-hidden" key={`profit-${activeTab}`}>
+                <Card className="glass border-none overflow-hidden" key={`alldist-${activeTab}`}>
                   <CardHeader className="border-b border-border/30 bg-white/5">
-                    <CardTitle className="text-lg font-semibold flex items-center">
+                    <CardTitle className="text-lg font-semibold flex items-center text-emerald-400">
                       <div className="w-1 h-6 bg-emerald-500 mr-3 rounded-full" />
-                      Kar/Zarar Durumu
+                      Tüm Hisseler Dağılımı
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <ProfitChart data={profitData} />
+                    <PortfolioDistribution data={allPortfolioData} />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -370,6 +406,43 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </div>
+
+              <div className="grid gap-6 md:grid-cols-2 mt-8">
+                <Card className="glass border-none neon-border overflow-hidden bg-emerald-950/5">
+                  <CardHeader className="bg-white/5 border-b border-white/10">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-emerald-400" />
+                      TL Bazlı Kâr/Zarar
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8 overflow-y-auto" style={{ maxHeight: '600px' }}>
+                    <ProfitChart data={profitSortedData} type="profit" />
+                  </CardContent>
+                </Card>
+                <Card className="glass border-none neon-border overflow-hidden bg-blue-950/5">
+                  <CardHeader className="bg-white/5 border-b border-white/10">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-400" />
+                      Oransal Kâr/Zarar (%)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8 overflow-y-auto" style={{ maxHeight: '600px' }}>
+                    <ProfitChart data={percentSortedData} type="percent" />
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="glass border-none neon-border overflow-hidden bg-slate-950/20 mt-8">
+                <CardHeader className="bg-white/5 border-b border-white/10">
+                  <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-200">
+                    <TrendingUp className="h-5 w-5 text-slate-400" />
+                    "Satmasaydım Ne Olurdu?" (FOMO Analizi)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <FomoChart data={fomoData} />
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
         </AnimatePresence>
